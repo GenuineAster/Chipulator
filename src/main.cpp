@@ -33,6 +33,8 @@ private:
 	//The actual emulator.
 	// Store Opcodes. Two bytes because Wikipedia said so.
 	std::vector<double_byte> program;
+	//The cursor position when reading the program
+	int cursor_pos;
 	// RAM. 3584 bytes because Wikipedia said so.
 	byte memory[3584];
 	// 16 registers ( 0 through F ) including flags.
@@ -81,12 +83,97 @@ private:
 		return true;
 	}
 
-	void run_opcode(const double_byte &opcode)
+	void execute_opcode(const double_byte &opcode)
 	{
-		if(opcode < 0xFFF)
+		// Clear window opcode
+		if(opcode == 0x00E0)
 		{
-			//Call RCA program or something
+			window.clear();
 			return;
+		}
+
+		// Return from subroutine
+		if(opcode == 0x00EE)
+		{
+			// TBI
+			return;
+		}
+
+		// 0x0NNN
+		//Call RCA program at NNN or something
+		if(opcode <= 0x0FFF)
+		{
+			// TBI
+			return;
+		}
+
+		// 0x1NNN
+		// Jump to address at NNN
+		if(opcode >= 0x1000 && opcode <= 0x1FFF)
+		{
+			// TBI
+			return;
+		}
+
+		// 0x2NNN
+		// Call subroutine at NNN
+		if(opcode >= 0x2000 && opcode <= 0x2FFF)
+		{
+			// TBI
+			return;
+		}
+
+		// 0x3XNN
+		// Skip next instruction if registers[X]
+		// is equal to NN
+		if(opcode >= 0x3000 && opcode <= 0x3FFF)
+		{
+			if(registers[(opcode>>8) - 0x30] == (opcode<<8)>>8)
+				++cursor_pos;
+			return;
+		}
+
+		// 0x4XNN
+		// Skip next instruction if registers[X]
+		// isn't equal to NN
+		if(opcode >= 0x4000 && opcode <= 0x4FFF)
+		{
+			if(registers[(opcode>>8) - 0x40] != (opcode<<8)>>8)
+				++cursor_pos;
+			return;
+		}
+
+		// 0x5XY0
+		// Skip next instruction if registers[X]
+		// is equal to registers[Y]
+		if(opcode >= 0x5000 && opcode <= 0x5FF0)
+		{
+			if(registers[(opcode>>8) - 0x50] == registers[(opcode<<8)>>8])
+				++cursor_pos;
+			return;
+		}
+
+		// 0x6XNN
+		// Set registers[X] to NN
+		if(opcode >= 0x6000 && opcode <= 0x6FFF)
+		{
+			registers[(opcode>>8) - 0x60] = (opcode<<8)>>8;
+			return;
+		}
+
+		// 0x7XNN
+		// Add NN to registers[X]
+		if(opcode >= 0x7000 && opcode <= 0x7FFF)
+		{
+			registers[(opcode>>8) - 0x70] += (opcode<<8)>>8;
+			return;
+		}
+
+		// 0x8XY0
+		// Sets registers[X] to registers[Y]
+		if(opcode >= 0x8000 && opcode <= 0x8FF0)
+		{
+			registers[(opcode>>8) - 0x80] = registers[(opcode<<8)>>12];
 		}
 	}
 
@@ -99,9 +186,9 @@ public:
 			return error_codes::LOADING_FILE;
 
 
-		int cursor_pos = 0;
+		cursor_pos = 0;
 		//Commence loop
-		while(cursor_pos < program.size())
+		while(cursor_pos < static_cast<int>(program.size()))
 		{
 			//Run the desired opcode and increment cursor
 			execute_opcode(program[cursor_pos++]);
