@@ -31,7 +31,7 @@ private:
 
 	//Graphics stuff
 	sf::RenderWindow &window;
-	std::vector<std::vector<bool>> display;
+	std::array<std::array<bool, 32>, 64> display;
 
 	//The actual emulator.
 	//Current opcode. Two bytes because Wikipedia said so.
@@ -108,6 +108,8 @@ private:
 		{0xF, sf::Keyboard::F}
 	};
 
+	std::map<sf::Keyboard::Key, bool> keys_pressed;
+
 
 	//Translates a Chip-8 keycode into an
 	// SFML Keycode.
@@ -126,6 +128,12 @@ private:
 			if(it.second == keycode)
 				return it.first;
 		return 0x10;
+	}
+
+	//Returns true if key is pressed
+	inline const bool &key_pressed(const sf::Keyboard::Key &keycode)
+	{
+		return keys_pressed[keycode];
 	}
 
 	//Loads the program into the program variable
@@ -219,9 +227,9 @@ private:
 			{
 				if(get_bit(memory[address_register+y], x))
 				{
-					if(!pixels_overwritten && display[x][y])
+					if(!pixels_overwritten && display[x+pos_x][y+pos_y])
 						pixels_overwritten = true;
-					display[x][y] = !display[x][y];
+					display[x+pos_x][y+pos_y] = !display[x+pos_x][y+pos_y];
 				}
 			}		
 		}
@@ -256,9 +264,8 @@ private:
 		if(opcode == 0x00E0)
 		{
 			window.clear(sf::Color::Black);
-			for(unsigned int x = 0; x < display.size(); ++x)
-				for(unsigned int y = 0; y < display[x].size(); ++y)
-					display[x][y]=false;
+			for(auto &row : display)
+				std::fill(row.begin(), row.end(), false);
 
 			program_counter +=2;
 			return error_code::NONE;
@@ -488,7 +495,7 @@ private:
 		//is pressed
 		if(get_4bit(opcode,0) == 0xE && get_byte(opcode,1) == 0x9E)
 		{
-			if(sf::Keyboard::isKeyPressed(translate_key(get_4bit(opcode,1))))
+			if(key_pressed(translate_key(get_4bit(opcode,1))))
 				program_counter+=2;
 			program_counter +=2;
 			return error_code::NONE;
@@ -500,7 +507,7 @@ private:
 		//isn't pressed
 		if(get_4bit(opcode,0) == 0xE && get_byte(opcode,1) == 0xA1)
 		{
-			if(!sf::Keyboard::isKeyPressed(translate_key(get_4bit(opcode,1))))
+			if(!key_pressed(translate_key(get_4bit(opcode,1))))
 				program_counter+=2;
 			program_counter +=2;
 			return error_code::NONE;
@@ -593,7 +600,8 @@ private:
 
 
 
-		return error_code::INSTRUCTION_NOT_FOUND;
+		//return error_code::INSTRUCTION_NOT_FOUND;
+		return error_code::NONE;
 	}
 
 public:
@@ -601,13 +609,8 @@ public:
 	error_code run(const std::string &f_)
 	{
 		//Set up rendering stuff
-		display.resize(64);
-		for(unsigned int x = 0; x < display.size(); ++x)
-		{
-			display[x].resize(32);
-			for(int y = 0; y < 32; ++y)
-				display[x][y] = false;
-		}
+		for(auto &row : display)
+			std::fill(row.begin(), row.end(), false);
 
 		window.clear(sf::Color::Black);
 
@@ -635,22 +638,40 @@ public:
 
 		program_counter = memory_start;
 		//Commence loop
-		while(program_counter < memory_end)
+		while(window.isOpen() && program_counter < memory_end)
 		{
+			sf::Event event;
+			while(window.pollEvent(event))
+			{
+				switch(event.type)
+				{
+				case sf::Event::Closed:
+					window.close();
+					break;
+				case sf::Event::KeyPressed:
+					keys_pressed[event.key.code] = true;
+					break;
+				case sf::Event::KeyReleased:
+					keys_pressed[event.key.code] = false;
+					break;
+				default:
+					break;
+				}
+			}
 			//Run the desired opcode and increment cursor
 			opcode = (memory[program_counter] << 8) | memory[program_counter+1];
 
-			if(true)
+			if(false)
 			{
 				std::cout<<std::hex;
 				std::cout<<"Stack size: "<<call_stack.size()<<"\n";
 				std::cout<<"PC: "<<program_counter<<"\n";
 				std::cout<<"Opcode: "<<opcode<<"\n";
-				if(false)
-					for(int i = 0; i < 0xF; i++)
-						std::cout<<"\tRegisters["<<i<<"]: "<<std::dec<<(int)registers[i]<<"\n";
 				std::cout<<"\n\n";
 			}
+			if(false)
+				for(int i = 0; i <= 0xF; i++)
+					std::cout<<"\tRegisters["<<i<<"]: "<<std::dec<<(int)registers[i]<<"\n";
 
 			error_code execution_return = execute_opcode();
 
@@ -668,7 +689,7 @@ public:
 			if(timer_sound > 0)
 				timer_sound--;
 
-			sf::sleep(sf::milliseconds(16));
+			sf::sleep(sf::milliseconds(1));
 		}
 
 
@@ -684,7 +705,7 @@ int main()
 {
 	sf::RenderWindow window{{800,600}, "Chipulator!"};
 	Chip8 emulator(window);
-	int emulator_status = emulator.run("roms/TETRIS");
+	int emulator_status = emulator.run("roms/BLINKY");
 	if(emulator_status != Chip8::error_code::NONE)
 		return emulator_status;
 }
