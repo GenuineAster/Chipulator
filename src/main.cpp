@@ -38,8 +38,9 @@ private:
 	// Store Opcodes. Two bytes because Wikipedia said so.
 	std::vector<double_byte> program;
 	//The cursor position when reading the program
-	int cursor_pos;
-	// RAM. 3584 bytes because Wikipedia said so.
+	int program_counter;
+	std::vector<int> call_stack;
+	// RAM. 4096 bytes because Wikipedia said so.
 	byte memory[4096];
 	// 16 registers ( 0 through F ) including flags.
 	byte registers[16];
@@ -214,8 +215,11 @@ private:
 		// Return from subroutine
 		if(opcode == 0x00EE)
 		{
-			// TBI
-			std::cout<<"Ran TBI opcode, 0x00EE\n";
+			if(call_stack.size() > 0)
+			{
+				program_counter = call_stack.back();
+				call_stack.pop_back();
+			}
 			return error_code::NONE;
 		}
 
@@ -232,8 +236,7 @@ private:
 		// Jump to address at NNN
 		if(opcode >= 0x1000 && opcode <= 0x1FFF)
 		{
-			// TBI
-			std::cout<<"Ran TBI opcode, 0x1NNN\n";
+			program_counter = (opcode&0xFFF);
 			return error_code::NONE;
 		}
 
@@ -241,8 +244,8 @@ private:
 		// Call subroutine at NNN
 		if(opcode >= 0x2000 && opcode <= 0x2FFF)
 		{
-			// TBI
-			std::cout<<"Ran TBI opcode, 0x2NNN\n";
+			call_stack.push_back(program_counter);
+			program_counter = (opcode&0xFFF);
 			return error_code::NONE;
 		}
 
@@ -252,7 +255,7 @@ private:
 		if(opcode >= 0x3000 && opcode <= 0x3FFF)
 		{
 			if(registers[get_4bit(opcode, 1)] == (opcode<<8)>>8)
-				++cursor_pos;
+				++program_counter;
 			return error_code::NONE;
 		}
 
@@ -262,7 +265,7 @@ private:
 		if(opcode >= 0x4000 && opcode <= 0x4FFF)
 		{
 			if(registers[get_4bit(opcode, 1)] != (opcode<<8)>>8)
-				++cursor_pos;
+				++program_counter;
 			return error_code::NONE;
 		}
 
@@ -272,7 +275,7 @@ private:
 		if(opcode >= 0x5000 && opcode <= 0x5FF0)
 		{
 			if(registers[get_4bit(opcode, 1)] == registers[(opcode>>4)&0xF])
-				++cursor_pos;
+				++program_counter;
 			return error_code::NONE;
 		}
 
@@ -365,7 +368,7 @@ private:
 		if(opcode >= 0x9000 && opcode <= 0x9FF0)
 		{
 			if(registers[(opcode>>8)&0xF] != registers[(opcode>>4)&0xF])
-				++cursor_pos;
+				++program_counter;
 			return error_code::NONE;
 		}
 
@@ -459,7 +462,7 @@ private:
 		if(get_4bit(opcode,0) == 0xE && get_byte(opcode,1) == 0x9E)
 		{
 			if(sf::Keyboard::isKeyPressed(translate_key(get_4bit(opcode,1))))
-				cursor_pos++;
+				program_counter++;
 			return error_code::NONE;
 		}
 
@@ -470,7 +473,7 @@ private:
 		if(get_4bit(opcode,0) == 0xE && get_byte(opcode,1) == 0xA1)
 		{
 			if(!sf::Keyboard::isKeyPressed(translate_key(get_4bit(opcode,1))))
-				cursor_pos++;
+				program_counter++;
 			return error_code::NONE;
 		}
 
@@ -583,18 +586,18 @@ public:
 		load_font();
 
 
-		cursor_pos = 0;
+		program_counter = 0;
 		//Commence loop
-		while(cursor_pos < static_cast<int>(program.size()))
+		while(program_counter < static_cast<int>(program.size()))
 		{
 			//Run the desired opcode and increment cursor
-			error_code execution_return = execute_opcode(program[cursor_pos++]);
+			error_code execution_return = execute_opcode(program[program_counter++]);
 			if(execution_return != error_code::NONE)
 			{
 				std::cout<<"Error! Code: "
 				         <<std::hex<<std::uppercase<<execution_return
 				         <<std::nouppercase<<", Instruction: "
-				         <<std::uppercase<<program[cursor_pos-1]<<"\n";
+				         <<std::uppercase<<program[program_counter-1]<<"\n";
 				;
 				return execution_return;
 			}
