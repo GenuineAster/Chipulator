@@ -151,12 +151,17 @@ private:
 			opcode <<= 8;
 			//Add the next byte to the opcode,
 			// successfully completing the opcode
-			opcode += program_file.get();
+			opcode |= program_file.get();
 
-			std::cout<<std::hex<<opcode;
-			((program.size()%8)==0)?(std::cout<<"\n"):(std::cout<<" ");
 
-			program.push_back(opcode);
+			//Only output/push back if the file
+			// is still good
+			if(program_file.good())
+			{
+				std::cout<<std::hex<<opcode;
+				((program.size()%8)==7)?(std::cout<<"\n"):(std::cout<<" ");
+				program.push_back(opcode);
+			}
 		}
 		std::cout<<"\n";
 
