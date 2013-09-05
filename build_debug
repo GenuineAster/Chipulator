@@ -1,0 +1,1 @@
+g++ $(cat sources) $(cat link_libraries_debug) $(cat args_debug)

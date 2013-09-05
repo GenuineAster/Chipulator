@@ -1,0 +1,4 @@
+-lsfml-graphics-d
+-lsfml-window-d
+-lsfml-audio-d
+-lsfml-system-d
