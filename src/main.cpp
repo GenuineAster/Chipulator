@@ -35,10 +35,10 @@ private:
 	sf::Sprite screen;
 
 	//The actual emulator.
-	// Store Opcodes. Two bytes because Wikipedia said so.
-	std::vector<double_byte> program;
-	//The cursor position when reading the program
-	int program_counter;
+	//Current opcode. Two bytes because Wikipedia said so.
+	double_byte opcode;
+	//The program counter when reading the program
+	int program_counter, program_size;
 	std::vector<int> call_stack;
 	// RAM. 4096 bytes because Wikipedia said so.
 	byte memory[4096];
@@ -53,7 +53,7 @@ private:
 	//Fonts are stored in the Chip-8 RAM,
 	// since we define them, we also keep
 	// their position.
-	byte font_pos = 0xF;
+	byte font_pos = 0x50;
 
 
 
@@ -126,7 +126,7 @@ private:
 		for(auto &it : keymap)
 			if(it.second == keycode)
 				return it.first;
-		return 0x0;
+		return 0x10;
 	}
 
 	//Loads the program into the program variable
@@ -135,34 +135,22 @@ private:
 		//Set the filename
 		filename = f_;
 
-		//Create a set of two bytes to load opcodes in.
-		double_byte opcode{0};
-
 		//Commence file reading
 		std::ifstream program_file(filename, std::ios::binary | std::ios::in);
 		if(!program_file.is_open())
 			return false;
 
+		int i=0;
+
 		while(program_file.good())
 		{
-			//Get a byte and assign it to the opcode
-			opcode = program_file.get();
-			//Shift the byte 8 bits to the right
-			// to make space for the next one
-			opcode <<= 8;
-			//Add the next byte to the opcode,
-			// successfully completing the opcode
-			opcode |= program_file.get();
-
-
-			//Only output/push back if the file
-			// is still good
-			if(program_file.good())
-			{
-				std::cout<<std::hex<<opcode;
-				((program.size()%8)==7)?(std::cout<<"\n"):(std::cout<<" ");
-				program.push_back(opcode);
-			}
+			//Read file into memory
+			byte &curr_byte = memory[memory_start+i];
+			curr_byte = program_file.get();
+			std::cout<<std::hex<<std::uppercase<<(int)curr_byte;
+			if(i%2 == 1) std::cout<<" ";
+			if(i%16 == 15) std::cout<<"\n";
+			i++;
 		}
 		std::cout<<"\n";
 
@@ -201,13 +189,23 @@ private:
 		}
 	}
 
-	error_code execute_opcode(const double_byte &opcode)
+	void clear_registers()
+	{
+		for(int i = 0; i < 0xF; ++i)
+			registers[i]=0;
+	}
+
+	//This function is the heart of
+	// the program. It executes the
+	// given opcodes.
+	error_code execute_opcode()
 	{
 		// 0x00E0
 		// Clear window opcode
 		if(opcode == 0x00E0)
 		{
 			window.clear(sf::Color::Black);
+			program_counter +=2;
 			return error_code::NONE;
 		}
 
@@ -218,6 +216,7 @@ private:
 			if(call_stack.size() > 0)
 			{
 				program_counter = call_stack.back();
+				program_counter +=2;
 				call_stack.pop_back();
 			}
 			return error_code::NONE;
@@ -229,6 +228,7 @@ private:
 		{
 			// TBI
 			std::cout<<"Ran TBI opcode, 0x0NNN\n";
+			program_counter +=2;
 			return error_code::NONE;
 		}
 
@@ -254,8 +254,11 @@ private:
 		// is equal to NN
 		if(opcode >= 0x3000 && opcode <= 0x3FFF)
 		{
-			if(registers[get_4bit(opcode, 1)] == (opcode<<8)>>8)
-				++program_counter;
+			if(registers[get_4bit(opcode, 1)] == get_byte(opcode, 1))
+			{
+				program_counter+=4;
+			}
+			program_counter +=2;
 			return error_code::NONE;
 		}
 
@@ -264,8 +267,9 @@ private:
 		// isn't equal to NN
 		if(opcode >= 0x4000 && opcode <= 0x4FFF)
 		{
-			if(registers[get_4bit(opcode, 1)] != (opcode<<8)>>8)
-				++program_counter;
+			if(registers[get_4bit(opcode, 1)] != get_byte(opcode, 1))
+				program_counter +=2;
+			program_counter +=2;
 			return error_code::NONE;
 		}
 
@@ -274,8 +278,9 @@ private:
 		// is equal to registers[Y]
 		if(opcode >= 0x5000 && opcode <= 0x5FF0)
 		{
-			if(registers[get_4bit(opcode, 1)] == registers[(opcode>>4)&0xF])
-				++program_counter;
+			if(registers[get_4bit(opcode, 1)] == registers[get_4bit(opcode, 2)])
+				program_counter +=2;
+			program_counter +=2;
 			return error_code::NONE;
 		}
 
@@ -283,7 +288,8 @@ private:
 		// Set registers[X] to NN
 		if(opcode >= 0x6000 && opcode <= 0x6FFF)
 		{
-			registers[get_4bit(opcode, 1)] = (opcode)&0xFF;
+			registers[get_4bit(opcode, 1)] = ((opcode)&0xFF);
+			program_counter +=2;
 			return error_code::NONE;
 		}
 
@@ -291,7 +297,8 @@ private:
 		// Add NN to registers[X]
 		if(opcode >= 0x7000 && opcode <= 0x7FFF)
 		{
-			registers[(opcode>>8)&0xF] += (opcode)&0xFF;
+			registers[(opcode>>8)&0xF] += ((opcode)&0xFF);
+			program_counter +=2;
 			return error_code::NONE;
 		}
 
@@ -358,6 +365,7 @@ private:
 				return error_code::INSTRUCTION_NOT_FOUND;
 				break;
 			}
+			program_counter +=2;
 			return error_code::NONE;
 		}
 
@@ -368,7 +376,8 @@ private:
 		if(opcode >= 0x9000 && opcode <= 0x9FF0)
 		{
 			if(registers[(opcode>>8)&0xF] != registers[(opcode>>4)&0xF])
-				++program_counter;
+				program_counter +=2;
+			program_counter +=2;
 			return error_code::NONE;
 		}
 
@@ -377,15 +386,15 @@ private:
 		if(opcode >= 0xA000 && opcode <= 0xAFFF)
 		{
 			address_register = opcode - 0xA000;
+			program_counter +=2;
 			return error_code::NONE;
 		}
 
 		//0xBNNN
-		//Jumps to NNN + register[0x0]
+		//Jumps to NNN + registers[0]
 		if(opcode >= 0xB000 && opcode <= 0xBFFF)
 		{
-			//TBI
-			std::cout<<"Ran TBI opcode, 0xBNNN\n";
+			program_counter = (opcode&0xFFF) + registers[0];
 			return error_code::NONE;
 		}
 
@@ -395,22 +404,23 @@ private:
 		if(opcode >= 0xC000 && opcode <= 0xCFFF)
 		{
 			registers[(opcode>>8)&0xF] = (rand() & ((opcode)&0xFF));
+			program_counter +=2;
 			return error_code::NONE;
 		}
 
 		//0xDXYN
-		//Draws a sprite at coord x,y of width 8 and height N
+		//Draws a sprite at coord Vx,Vy of width 8 and height N
 		//The sprite is stored as a series of bits at the
 		// address pointer.
 		if(opcode >= 0xD000 && opcode <= 0xDFFF)
 		{
 			//Get the position and height
 			byte pos_x,pos_y,height;
-			std::cout<<opcode - 0xD000<<": ";
-			pos_x = (opcode>>8)&0xF;
-			pos_y = (opcode<<4)&0xF;
+			//std::cout<<opcode - 0xD000<<": ";
+			pos_x = registers[(opcode>>8)&0xF];
+			pos_y = registers[(opcode>>4)&0xF];
 			height = (opcode)&0xF;
-			std::cout<<"pos_x="<<(int)pos_x<<" pos_y="<<(int)pos_y<<" height="<<(int)height<<"\n";
+			//std::cout<<"pos_x="<<(int)pos_x<<" pos_y="<<(int)pos_y<<" height="<<(int)height<<"\n";
 
 			//Get an image of what's being rendered to screen
 			sf::Image image = render_target.copyToImage();
@@ -452,6 +462,7 @@ private:
 			render_target.update(pixels,pos_x,pos_y,8,height);
 			window.draw(screen);
 			window.display();
+			program_counter +=2;
 			return error_code::NONE;
 		}
 
@@ -462,18 +473,20 @@ private:
 		if(get_4bit(opcode,0) == 0xE && get_byte(opcode,1) == 0x9E)
 		{
 			if(sf::Keyboard::isKeyPressed(translate_key(get_4bit(opcode,1))))
-				program_counter++;
+				program_counter+=2;
+			program_counter +=2;
 			return error_code::NONE;
 		}
 
 		//0xEXA1
-		//Skipe the next instruction if
+		//Skip the next instruction if
 		//the key stored in registers[X]
 		//isn't pressed
 		if(get_4bit(opcode,0) == 0xE && get_byte(opcode,1) == 0xA1)
 		{
 			if(!sf::Keyboard::isKeyPressed(translate_key(get_4bit(opcode,1))))
-				program_counter++;
+				program_counter+=2;
+			program_counter +=2;
 			return error_code::NONE;
 		}
 
@@ -495,6 +508,7 @@ private:
 				//Sets registers[X] to
 				// the delay timer
 				registers[arg_x] = timer_delay;
+				program_counter +=2;
 				return error_code::NONE;
 			case 0x0A:
 				//Waits for a keypress, then
@@ -502,29 +516,34 @@ private:
 				sf::Event event;
 				do	
 					window.waitEvent(event); 
-				while(event.type != sf::Event::KeyPressed && translate_key(event.key.code) != 0);
-				registers[arg_x] = event.key.code;
+				while(event.type != sf::Event::KeyPressed && translate_key(event.key.code) != 0x10);
+				registers[arg_x] = translate_key(event.key.code);
+				program_counter +=2;
 				return error_code::NONE;
 			case 0x15:
 				//Sets the delay timer to
 				// registers[X]
 				timer_delay = registers[arg_x];
+				program_counter +=2;
 				return error_code::NONE;
 			case 0x18:
 				//Sets the sound timer to
 				// registers[X]
 				timer_sound = registers[arg_x];
+				program_counter +=2;
 				return error_code::NONE;
 			case 0x1E:
 				//Adds registers[X]
 				// to address_register
 				address_register += registers[arg_x];
+				program_counter +=2;
 				return error_code::NONE;
 			case 0x29:
 				//Sets the address register to the
 				// location of the sprite for the
 				// character stored in registers[X]
 				address_register = font_pos+5*registers[arg_x];
+				program_counter +=2;
 				return error_code::NONE;
 			case 0x33:
 				//Stores the BCD of registers[X]
@@ -533,6 +552,7 @@ private:
 				access_memory(address_register  ) = (registers[arg_x]/100)&9;
 				access_memory(address_register+1) = (registers[arg_x]/10 )&9;
 				access_memory(address_register+2) = (registers[arg_x]    )&9;
+				program_counter +=2;
 				return error_code::NONE;
 			case 0x55:
 				//Stores all the registers 
@@ -540,6 +560,7 @@ private:
 				// at address_register
 				for(int i = 0; i < arg_x; ++i)
 					access_memory(address_register+i) = registers[i];
+				program_counter +=2;
 				return error_code::NONE;
 			case 0x65:
 				//Grabs registers 0 to X 
@@ -547,6 +568,7 @@ private:
 				// address_register.
 				for(int i = 0; i < arg_x; ++i)
 					registers[i] = access_memory(address_register+i);
+				program_counter +=2;
 				return error_code::NONE;
 			default:
 				break;
@@ -569,6 +591,8 @@ public:
 
 		window.clear(sf::Color::Black);
 
+		timer_delay = 0;
+		timer_sound = 0;
 
 		//Load the file, return error if any
 		if(!load_program(f_))
@@ -585,22 +609,44 @@ public:
 		// emulator, and the fonts are hardcoded
 		load_font();
 
+		clear_registers();
 
-		program_counter = 0;
+
+		program_counter = memory_start;
 		//Commence loop
-		while(program_counter < static_cast<int>(program.size()))
+		while(program_counter < program_size)
 		{
 			//Run the desired opcode and increment cursor
-			error_code execution_return = execute_opcode(program[program_counter++]);
+			opcode = (memory[program_counter] << 8) | memory[program_counter+1];
+
+			if(true)
+			{
+				std::cout<<std::hex;
+				std::cout<<"Stack size: "<<call_stack.size()<<"\n";
+				std::cout<<"PC: "<<program_counter<<"\n";
+				std::cout<<"Opcode: "<<opcode<<"\n";
+				if(false)
+					for(int i = 0; i < 0xF; i++)
+						std::cout<<"\tRegisters["<<i<<"]: "<<std::dec<<(int)registers[i]<<"\n";
+				std::cout<<"\n\n";
+			}
+
+			error_code execution_return = execute_opcode();
+
 			if(execution_return != error_code::NONE)
 			{
 				std::cout<<"Error! Code: "
 				         <<std::hex<<std::uppercase<<execution_return
 				         <<std::nouppercase<<", Instruction: "
-				         <<std::uppercase<<program[program_counter-1]<<"\n";
+				         <<std::uppercase<<opcode<<"\n";
 				;
 				return execution_return;
 			}
+			if(timer_delay > 0)
+				timer_delay--;
+			if(timer_sound > 0)
+				timer_sound--;
+
 			sf::sleep(sf::milliseconds(16));
 		}
 
