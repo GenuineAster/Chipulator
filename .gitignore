@@ -217,3 +217,4 @@ pip-log.txt
 *.dll
 *.o
 *.exe
+log.txt

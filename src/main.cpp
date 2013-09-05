@@ -31,8 +31,7 @@ private:
 
 	//Graphics stuff
 	sf::RenderWindow &window;
-	sf::Texture render_target;
-	sf::Sprite screen;
+	std::vector<std::vector<bool>> display;
 
 	//The actual emulator.
 	//Current opcode. Two bytes because Wikipedia said so.
@@ -153,6 +152,7 @@ private:
 			i++;
 		}
 		std::cout<<"\n";
+		program_size = i;
 
 		return true;
 	}
@@ -195,6 +195,57 @@ private:
 			registers[i]=0;
 	}
 
+	//This is the draw function.
+	//It draws a Chip-8 Sprite
+	// at pos_x,pos_y with 
+	// width=8 and height=height.
+	//Sprite data is stored as
+	// a set of bits in a byte
+	// each bit represents a 
+	// pixel of the sprite.
+	//It returns the
+	// pixel_overwritten flag.
+	bool draw(const byte &pos_x, const byte &pos_y, const byte &height)
+	{
+		sf::Image image;
+		sf::Texture texture;
+		sf::Sprite sprite;
+
+		bool pixels_overwritten=false;
+
+		for(int y = 0; y < height; ++y)
+		{
+			for(int x = 0; x < 7; ++x)
+			{
+				if(get_bit(memory[address_register+y], x))
+				{
+					if(!pixels_overwritten && display[x][y])
+						pixels_overwritten = true;
+					display[x][y] = !display[x][y];
+				}
+			}		
+		}
+
+		image.create(display.size(), display[0].size());
+
+		for(unsigned int x = 0; x < display.size(); ++x)
+		{
+			for(unsigned int y = 0; y < display[x].size(); ++y)
+			{
+				image.setPixel(x, y, (display[x][y])?(sf::Color::White):(sf::Color::Black));
+			}
+		}
+
+		texture.loadFromImage(image);
+		sprite.setTexture(texture);
+		sprite.setScale(window.getSize().x/display.size(),window.getSize().y/display[0].size());
+		sprite.setPosition(0,0);
+		window.draw(sprite);
+		window.display();
+
+		return pixels_overwritten;
+	}
+
 	//This function is the heart of
 	// the program. It executes the
 	// given opcodes.
@@ -205,6 +256,10 @@ private:
 		if(opcode == 0x00E0)
 		{
 			window.clear(sf::Color::Black);
+			for(unsigned int x = 0; x < display.size(); ++x)
+				for(unsigned int y = 0; y < display[x].size(); ++y)
+					display[x][y]=false;
+
 			program_counter +=2;
 			return error_code::NONE;
 		}
@@ -416,52 +471,13 @@ private:
 		{
 			//Get the position and height
 			byte pos_x,pos_y,height;
-			//std::cout<<opcode - 0xD000<<": ";
-			pos_x = registers[(opcode>>8)&0xF];
-			pos_y = registers[(opcode>>4)&0xF];
-			height = (opcode)&0xF;
-			//std::cout<<"pos_x="<<(int)pos_x<<" pos_y="<<(int)pos_y<<" height="<<(int)height<<"\n";
+			pos_x = registers[get_4bit(opcode, 1)];
+			pos_y = registers[get_4bit(opcode, 2)];
+			height = get_4bit(opcode, 3);
 
-			//Get an image of what's being rendered to screen
-			sf::Image image = render_target.copyToImage();
+			//Set the flags register to whatever draw returns.
+			registers[0xF] = draw(pos_x, pos_y, height);
 
-			//Create array of pixels. height*8*4 because 8 pixels
-			// wide and each pixel is 4 bytes (one for each color)
-			byte pixels[height*8*4];
-
-			registers[0xF] = 0;
-
-			//Commence drawing loop
-			for(int y=0;y<height;++y)
-			{
-				//Get the byte that represents this row of the sprite.
-				byte &subject = access_memory(address_register+y);
-
-				//Iterate through each bit of the byte
-				for(int x=7;x>=0;--x)
-				{
-					//Check if the bit is set to 1 or not
-					if(get_bit(subject, x))
-					{
-						//Get the current pixel we're working on.
-						sf::Color curr_pixel = image.getPixel(pos_x+x, pos_y+y);
-
-						//If the pixels are overwritten, set the flag register to one.
-						if(registers[0xF] == 0 && curr_pixel.a == 255)
-							registers[0xF] = 1;
-
-						//Set all the pixels to max
-						// to get a white color
-						pixels[((y*8+x)*1)]= 255;
-						pixels[((y*8+x)*2)]= 255;
-						pixels[((y*8+x)*3)]= 255;
-						pixels[((y*8+x)*4)]= 255;
-					}
-				}
-			}
-			render_target.update(pixels,pos_x,pos_y,8,height);
-			window.draw(screen);
-			window.display();
 			program_counter +=2;
 			return error_code::NONE;
 		}
@@ -585,12 +601,17 @@ public:
 	error_code run(const std::string &f_)
 	{
 		//Set up rendering stuff
-		screen.setTexture(render_target);
-		//64x32 is the screen size of a Chip-8
-		render_target.create(64,32);
+		display.resize(64);
+		for(unsigned int x = 0; x < display.size(); ++x)
+		{
+			display[x].resize(32);
+			for(int y = 0; y < 32; ++y)
+				display[x][y] = false;
+		}
 
 		window.clear(sf::Color::Black);
 
+		//Reset timers
 		timer_delay = 0;
 		timer_sound = 0;
 
@@ -614,7 +635,7 @@ public:
 
 		program_counter = memory_start;
 		//Commence loop
-		while(program_counter < program_size)
+		while(program_counter < memory_end)
 		{
 			//Run the desired opcode and increment cursor
 			opcode = (memory[program_counter] << 8) | memory[program_counter+1];
@@ -667,3 +688,6 @@ int main()
 	if(emulator_status != Chip8::error_code::NONE)
 		return emulator_status;
 }
+
+
+
