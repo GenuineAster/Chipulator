@@ -90,22 +90,22 @@ private:
 
 	std::map<byte, sf::Keyboard::Key> keymap
 	{
-		{0x0, sf::Keyboard::Num0},
+		{0x0, sf::Keyboard::X},
 		{0x1, sf::Keyboard::Num1},
 		{0x2, sf::Keyboard::Num2},
 		{0x3, sf::Keyboard::Num3},
-		{0x4, sf::Keyboard::Num4},
-		{0x5, sf::Keyboard::Num5},
-		{0x6, sf::Keyboard::Num6},
-		{0x7, sf::Keyboard::Num7},
-		{0x8, sf::Keyboard::Num8},
-		{0x9, sf::Keyboard::Num9},
-		{0xA, sf::Keyboard::A},
-		{0xB, sf::Keyboard::B},
-		{0xC, sf::Keyboard::C},
-		{0xD, sf::Keyboard::D},
-		{0xE, sf::Keyboard::E},
-		{0xF, sf::Keyboard::F}
+		{0x4, sf::Keyboard::Q},
+		{0x5, sf::Keyboard::W},
+		{0x6, sf::Keyboard::E},
+		{0x7, sf::Keyboard::A},
+		{0x8, sf::Keyboard::S},
+		{0x9, sf::Keyboard::D},
+		{0xA, sf::Keyboard::Z},
+		{0xB, sf::Keyboard::C},
+		{0xC, sf::Keyboard::Num4},
+		{0xD, sf::Keyboard::R},
+		{0xE, sf::Keyboard::F},
+		{0xF, sf::Keyboard::V}
 	};
 
 	std::map<sf::Keyboard::Key, bool> keys_pressed;
@@ -227,9 +227,9 @@ private:
 			{
 				if(get_bit(memory[address_register+y], x))
 				{
-					if(!pixels_overwritten && display[x+pos_x][y+pos_y])
+					if(!pixels_overwritten && display[(x+pos_x)%display.size()][(y+pos_y)%display[0].size()])
 						pixels_overwritten = true;
-					display[x+pos_x][y+pos_y] = !display[x+pos_x][y+pos_y];
+					display[(x+pos_x)%display.size()][(y+pos_y)%display[0].size()] = !display[(x+pos_x)%display.size()][(y+pos_y)%display[0].size()];
 				}
 			}		
 		}
@@ -638,7 +638,7 @@ public:
 
 		program_counter = memory_start;
 		//Commence loop
-		while(window.isOpen() && program_counter < memory_end)
+		while(window.isOpen() && program_counter < program_size+memory_start)
 		{
 			sf::Event event;
 			while(window.pollEvent(event))
@@ -689,7 +689,7 @@ public:
 			if(timer_sound > 0)
 				timer_sound--;
 
-			sf::sleep(sf::milliseconds(1));
+			//sf::sleep(sf::milliseconds(5));
 		}
 
 
@@ -705,7 +705,7 @@ int main()
 {
 	sf::RenderWindow window{{800,600}, "Chipulator!"};
 	Chip8 emulator(window);
-	int emulator_status = emulator.run("roms/BLINKY");
+	int emulator_status = emulator.run("roms/TETRIS");
 	if(emulator_status != Chip8::error_code::NONE)
 		return emulator_status;
 }
