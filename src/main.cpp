@@ -5,6 +5,8 @@ Chipulate, a Chip-8 emulator written in C++ with SFML, by Mischa 'Aster' Alff.
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <fstream>
+#include <array>
+#include "vertextable.h"
 
 class Chip8
 {
@@ -32,6 +34,7 @@ private:
 	//Graphics stuff
 	sf::RenderWindow &window;
 	std::array<std::array<bool, 32>, 64> display;
+	vertexTable screen;
 
 	//The actual emulator.
 	//Current opcode. Two bytes because Wikipedia said so.
@@ -214,45 +217,29 @@ private:
 	//It returns the
 	// pixel_overwritten flag.
 	bool draw(const byte &pos_x, const byte &pos_y, const byte &height)
-	{
-		sf::Image image;
-		sf::Texture texture;
-		sf::Sprite sprite;
-
-		bool pixels_overwritten=false;
-
-		for(int y = 0; y < height; ++y)
-		{
-			for(int x = 0; x < 7; ++x)
-			{
-				if(get_bit(memory[address_register+y], x))
-				{
-					if(!pixels_overwritten && display[(x+pos_x)%display.size()][(y+pos_y)%display[0].size()])
-						pixels_overwritten = true;
-					display[(x+pos_x)%display.size()][(y+pos_y)%display[0].size()] = !display[(x+pos_x)%display.size()][(y+pos_y)%display[0].size()];
-				}
-			}		
-		}
-
-		image.create(display.size(), display[0].size());
-
-		for(unsigned int x = 0; x < display.size(); ++x)
-		{
-			for(unsigned int y = 0; y < display[x].size(); ++y)
-			{
-				image.setPixel(x, y, (display[x][y])?(sf::Color::White):(sf::Color::Black));
-			}
-		}
-
-		texture.loadFromImage(image);
-		sprite.setTexture(texture);
-		sprite.setScale(window.getSize().x/display.size(),window.getSize().y/display[0].size());
-		sprite.setPosition(0,0);
-		window.draw(sprite);
-		window.display();
-
-		return pixels_overwritten;
-	}
+    {
+        bool pixels_overwritten=false;
+        
+        for(int y = 0; y < height; ++y)
+        {
+            for(int x = 0; x < 7; ++x)
+            {
+                if(get_bit(memory[address_register+y], x))
+                {
+                    if(!pixels_overwritten && display[(x+pos_x)%display.size()][(y+pos_y)%display[0].size()])
+                        pixels_overwritten = true;
+                    display[(x+pos_x)%display.size()][(y+pos_y)%display[0].size()] = !display[(x+pos_x)%display.size()][(y+pos_y)%display[0].size()];
+                }
+            }
+        }
+        
+        screen.update();
+        
+        window.draw(screen.getSprite());
+        window.display();
+        
+        return pixels_overwritten;
+    }
 
 	//This function is the heart of
 	// the program. It executes the
@@ -697,7 +684,11 @@ public:
 		return error_code::NONE;
 	}
 
-	Chip8(sf::RenderWindow &w) : window(w) {}
+	Chip8(sf::RenderWindow &w) : window(w),screen(display)
+    {
+        //scale screen sprite according to window size
+        screen.getSprite().setScale(window.getSize().x/display.size(),window.getSize().y/display[0].size());
+    }
 };
 
 
