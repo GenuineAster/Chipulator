@@ -20,8 +20,8 @@ public:
 
 private:
 
-    //Constants. Define what a byte is,
-    // and where the program's RAM accessing
+    //Constants. Define what a byte is, 
+    // and where the program's RAM accessing 
     // will start and stop.
     using byte        = uint8_t;
     using double_byte = uint16_t;
@@ -208,18 +208,18 @@ private:
 
     //This is the draw function.
     //It draws a Chip-8 Sprite
-    // at pos_x,pos_y with
+    // at pos_x,pos_y with 
     // width=8 and height=height.
     //Sprite data is stored as
     // a set of bits in a byte
-    // each bit represents a
+    // each bit represents a 
     // pixel of the sprite.
     //It returns the
     // pixel_overwritten flag.
     bool draw(const byte &pos_x, const byte &pos_y, const byte &height)
     {
         bool pixels_overwritten=false;
-
+        
         for(int y = 0; y < height; ++y)
         {
             for(int x = 0; x < 7; ++x)
@@ -232,12 +232,12 @@ private:
                 }
             }
         }
-
+        
         screen.update();
-
+        
         window.draw(screen.getSprite());
         window.display();
-
+        
         return pixels_overwritten;
     }
 
@@ -501,7 +501,7 @@ private:
         }
 
 
-        //All instructions starting
+        //All instructions starting 
         // with 0xF
         if(get_4bit(opcode,0) == 0xF)
         {
@@ -524,8 +524,8 @@ private:
                 //Waits for a keypress, then
                 // stores it in registers[X]
                 sf::Event event;
-                do
-                    window.waitEvent(event);
+                do  
+                    window.waitEvent(event); 
                 while(event.type != sf::Event::KeyPressed && translate_key(event.key.code) != 0x10);
                 registers[arg_x] = translate_key(event.key.code);
                 program_counter +=2;
@@ -565,7 +565,7 @@ private:
                 program_counter +=2;
                 return error_code::NONE;
             case 0x55:
-                //Stores all the registers
+                //Stores all the registers 
                 // from 0 to X in RAM, starting
                 // at address_register
                 for(int i = 0; i < arg_x; ++i)
@@ -573,8 +573,8 @@ private:
                 program_counter +=2;
                 return error_code::NONE;
             case 0x65:
-                //Grabs registers 0 to X
-                // from RAM, starting at
+                //Grabs registers 0 to X 
+                // from RAM, starting at 
                 // address_register.
                 for(int i = 0; i < arg_x; ++i)
                     registers[i] = access_memory(address_register+i);
@@ -700,3 +700,6 @@ int main()
     if(emulator_status != Chip8::error_code::NONE)
         return emulator_status;
 }
+
+
+
