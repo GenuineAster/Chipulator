@@ -53,12 +53,15 @@ void handle_events(sf::Event &event, Chipulator &chip8, sf::RenderWindow &window
 		case sf::Event::KeyPressed:
 			chip8.key_pressed(translate_key(event.key.code));
 			return;
+			break;
 		case sf::Event::KeyReleased:
 			chip8.key_released(translate_key(event.key.code));
 			return;
+			break;
 		case sf::Event::Closed:
 			window.close();
 			return;
+			break;
 	}
 }
 
@@ -85,6 +88,8 @@ int main(int argc, char** argv)
 	while(chip8.running())
 	{
 		sf::Event event;
+		window.pollEvent(event);
+		handle_events(event, chip8, window);
 
 		if(timer.getElapsedTime().asMicroseconds() > timer_period)
 		{
