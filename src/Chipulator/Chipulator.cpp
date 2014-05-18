@@ -65,41 +65,112 @@ void Chipulator::run_opcode()
 				{
 					ip = cs.top();
 					cs.pop();
+					break;
 				}
+				default:
+					;//TBI
+
 			}
 			return;
 		}
 		case 0x1:
 		{
-
+			ip = opcode & 0xFFF;
+			return;
 		}
 		case 0x2:
 		{
-
+			cs.push(ip);
+			ip = opcode & 0xFFF;
+			return;
 		}
 		case 0x3:
 		{
-
+			if(regs.V[(opcode>>8)&0xF] == opcode & 0xFF)
+				ip+=2;
+			return;
 		}
 		case 0x4:
 		{
-
+			if(regs.V[(opcode>>8)&0xF] != opcode & 0xFF)
+				ip+=2;
+			return;
 		}
 		case 0x5:
 		{
-
+			if(regs.V[(opcode>>8)&0xF] == regs.V[(opcode>>4)&0xF])
+				ip+=2;
+			return;
 		}
 		case 0x6:
 		{
-
+			regs.V[(opcode>>8)&0xF] = opcode&0xFF;
+			return;
 		}
 		case 0x7:
 		{
-
+			regs.V[(opcode>>8)&0xF] += opcode&0xFF;
+			return;
 		}
 		case 0x8:
 		{
-
+			switch(opcode&0xF)
+			{
+				case 0x0:
+				{
+					regs.V[(opcode>>8)&0xF] = regs.V[(opcode>>4)&0xF];
+					break;
+				}
+				case 0x1:
+				{
+					regs.V[(opcode>>8)&0xF] = regs.V[(opcode>>8)&0xF] | regs.V[(opcode>>4)&0xF];
+					break;
+				}
+				case 0x2:
+				{
+					regs.V[(opcode>>8)&0xF] = regs.V[(opcode>>8)&0xF] & regs.V[(opcode>>4)&0xF];
+					break;
+				}
+				case 0x3:
+				{
+					regs.V[(opcode>>8)&0xF] = regs.V[(opcode>>8)&0xF] ^ regs.V[(opcode>>4)&0xF];
+					break;
+				}
+				case 0x4:
+				{
+					if((uint)regs.V[(opcode>>8)&0xF] + (uint)regs.V[(opcode>>4)&0xF] > 0xFF)
+						regs.V[0xF] = true;
+					regs.V[(opcode>>8)&0xF] = regs.V[(opcode>>8)&0xF] + regs.V[(opcode>>4)&0xF];
+					break;
+				}
+				case 0x5:
+				{
+					if((int)regs.V[(opcode>>8)&0xF] - (int)regs.V[(opcode>>4)&0xF] < 0)
+						regs.V[0xF] = true;
+					regs.V[(opcode>>8)&0xF] = regs.V[(opcode>>8)&0xF] - regs.V[(opcode>>4)&0xF];
+					break;
+				}
+				case 0x6:
+				{
+					regs.V[0xF] = regs.V[(opcode>>8)&0xF]&1;
+					regs.V[(opcode>>8)&0xF] = regs.V[(opcode>>8)&0xF]>>1;
+					break;
+				}
+				case 0x7:
+				{
+					if((int)regs.V[(opcode>>4)&0xF] - (int)regs.V[(opcode>>8)&0xF] < 0)
+						regs.V[0xF] = true;
+					regs.V[(opcode>>8)&0xF] = regs.V[(opcode>>4)&0xF] - regs.V[(opcode>>8)&0xF];	
+					break;
+				}
+				case 0xE:
+				{
+					regs.V[0xF] = (regs.V[(opcode>>8)&0xF]>>7)&1;
+					regs.V[(opcode>>8)&0xF] = regs.V[(opcode>>8)&0xF]<<1;
+					break;
+				}
+			}
+			return;
 		}
 		case 0x9:
 		{
