@@ -28,5 +28,6 @@ private:
 	bool display[32][64];
 
 public:
+	void load_font();
 	void load_program(std::string fname);
 };
