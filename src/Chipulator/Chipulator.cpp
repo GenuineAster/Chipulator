@@ -1,3 +1,4 @@
+#include <ctime>
 #include <cstring>
 #include <Chipulator/Chipulator.hpp>
 
@@ -174,31 +175,105 @@ void Chipulator::run_opcode()
 		}
 		case 0x9:
 		{
-
+			if(regs.V[(opcode>>8)&0xF] != regs.V[(opcode>>4)&0xF])
+				ip += 2;
+			return;
 		}
 		case 0xA:
 		{
-
+			regs.I = opcode&0xFFF;
+			return;
 		}
 		case 0xB:
 		{
-
+			ip = opcode&0xFFF + regs.V[0];
+			return;
 		}
 		case 0xC:
 		{
-
+			regs.V[(opcode>>8)&0xF] = rand() & (opcode&0xFF);
+			return;
 		}
 		case 0xD:
 		{
+			auto x = regs.V[(opcode>>8)&0xF];
+			auto y = regs.V[(opcode>>4)&0xF];
+			auto height = opcode & 0xF;
+			for(auto i = 0; i < height; ++i)
+			{
+				byte spr = memory[regs.I+height];
+				for(auto j = 0; j < 8; ++j)
+				{
+					auto val = (spr>>j)&1;
+					bool *pixel = &display[y+height][x+j];
+					if(val)
+						if(*pixel)
+							*pixel = 0;
+					*pixel = val;
+				}
+			}
+			return;
 
 		}
 		case 0xE:
 		{
-
+			return;
 		}
 		case 0xF:
 		{
-
+			switch(opcode & 0xFF)
+			{
+				case 0x07:
+				{
+					regs.V[(opcode>>8)&0xF] = timers.delay;
+					break;
+				}
+				case 0x0A:
+				{
+					break;
+				}
+				case 0x15:
+				{
+					timers.delay = regs.V[(opcode>>8)&0xF];
+					break;
+				}
+				case 0x18:
+				{
+					timers.sound = regs.V[(opcode>>8)&0xF];
+					break;
+				}
+				case 0x1E:
+				{
+					regs.I += regs.V[(opcode>>8)&0xF];
+					break;
+				}
+				case 0x29:
+				{
+					regs.I = 0x0+0x5*regs.V[(opcode>>8)&0xF];
+					break;
+				}
+				case 0x33:
+				{
+					auto val = regs.V[(opcode>>8)&0xF];
+					memory[regs.I]   = val %= 10;
+					memory[regs.I+1] = val %= 10;
+					memory[regs.I+2] = val %= 10;
+					break;
+				}
+				case 0x55:
+				{
+					for(auto i=0;i<0xF;++i)
+						memory[regs.I+i] = regs.V[i];
+					break;
+				}
+				case 0x65:
+				{
+					for(auto i=0;i<0xF;++i)
+						regs.V[i] = memory[regs.I+i];
+					break;
+				}
+			}
+			return;
 		}
 		default:
 			return;
