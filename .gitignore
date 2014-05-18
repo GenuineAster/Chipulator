@@ -218,3 +218,10 @@ pip-log.txt
 *.o
 *.exe
 log.txt
+cmake_install.cmake
+CMakeCache.txt
+CMakeFiles
+Chipulator
+run/Chipulator
+Makefile
+install_manifest.txt
