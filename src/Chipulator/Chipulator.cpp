@@ -7,6 +7,19 @@ bool Chipulator::running()
 	return ip != pend;
 }
 
+bool (&Chipulator::get_display())[32][64]
+{
+	return display;
+}
+
+void Chipulator::decrement_timers()
+{
+	if(timers.sound > 0)
+		--timers.sound;
+	if(timers.delay > 0)
+		--timers.delay;
+}
+
 void Chipulator::load_program(std::string fname)
 {
 	std::ifstream program_file(fname, std::ios::binary | std::ios::in);
@@ -51,6 +64,16 @@ void Chipulator::load_font()
 	{
 		memory[i] = font[i];
 	}
+}
+
+void Chipulator::key_pressed(byte key)
+{
+	keys[key] = true;
+}
+
+void Chipulator::key_released(byte key)
+{
+	keys[key] = false;
 }
 
 void Chipulator::run_opcode()

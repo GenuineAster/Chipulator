@@ -37,11 +37,13 @@ public:
 		WaitKey
 	};
 
+	bool (&get_display())[32][64];
 	void key_pressed(byte key);
 	void key_released(byte key);
 	void load_program(std::string fname);
 	void run_opcode();
 	bool running();
+	void decrement_timers();
 
 	Chipulator();
 };

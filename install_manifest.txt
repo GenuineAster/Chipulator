@@ -1,0 +1,1 @@
+/home/aster/Programming/osdev/Chipulator/run/Chipulator
