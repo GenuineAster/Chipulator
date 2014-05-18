@@ -2,6 +2,11 @@
 #include <cstring>
 #include <Chipulator/Chipulator.hpp>
 
+bool Chipulator::running()
+{
+	return ip != pend;
+}
+
 void Chipulator::load_program(std::string fname)
 {
 	std::ifstream program_file(fname, std::ios::binary | std::ios::in);
@@ -18,6 +23,7 @@ void Chipulator::load_program(std::string fname)
 		curr_byte = program_file.get();
 		++i;
 	}
+	pend = i;
 }
 
 void Chipulator::load_font()
@@ -243,7 +249,7 @@ void Chipulator::run_opcode()
 				}
 				case 0x0A:
 				{
-					throw Exceptions::WaitKey;
+					throw Exception::WaitKey;
 					break;
 				}
 				case 0x15:

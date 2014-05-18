@@ -17,7 +17,7 @@ private:
 		word I;
 	} regs;
 
-	word ip;
+	word ip, pend;
 	std::stack<word> cs;
 
 	struct 
@@ -32,7 +32,7 @@ private:
 	void load_font();
 
 public:
-	enum Exceptions
+	enum Exception
 	{
 		WaitKey
 	};
@@ -41,6 +41,7 @@ public:
 	void key_released(byte key);
 	void load_program(std::string fname);
 	void run_opcode();
+	bool running();
 
 	Chipulator();
 };
