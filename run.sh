@@ -1,1 +1,0 @@
-cd run && ./Chipulator && cd ..
