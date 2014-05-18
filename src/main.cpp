@@ -6,7 +6,7 @@ Chipulator, a Chip-8 emulator written in C++ with SFML, by Mischa 'Aster' Alff.
 
 int main()
 {
-	Chipulator chip8;
+	Chipulator chip8();
 }
 
 

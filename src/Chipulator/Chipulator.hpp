@@ -27,9 +27,20 @@ private:
 	} timers;
 
 	bool display[32][64];
+	bool keys[0xF];
+
+	void load_font();
 
 public:
-	void load_font();
+	enum Exceptions
+	{
+		WaitKey
+	};
+
+	void key_pressed(byte key);
+	void key_released(byte key);
 	void load_program(std::string fname);
 	void run_opcode();
+
+	Chipulator();
 };

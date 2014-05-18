@@ -9,6 +9,7 @@ void Chipulator::load_program(std::string fname)
 		;
 
 	int i=0x200;
+	ip = i;
 
 	while(program_file.good())
 	{
@@ -49,6 +50,7 @@ void Chipulator::load_font()
 void Chipulator::run_opcode()
 {
 	word opcode = memory[ip]<<8 | memory[ip+1];
+	ip+=2;
 	switch(opcode>>12)
 	{
 		case 0x0:
@@ -69,7 +71,7 @@ void Chipulator::run_opcode()
 					break;
 				}
 				default:
-					;//TBI
+					break;//TBI
 
 			}
 			return;
@@ -217,6 +219,17 @@ void Chipulator::run_opcode()
 		}
 		case 0xE:
 		{
+			switch(opcode&0xFF)
+			{
+				case 0x9E:
+					if(keys[regs.V[(opcode>>8)&0xF]])
+						ip+=2;
+					break;
+				case 0xA1:
+					if(!keys[regs.V[(opcode>>8)&0xF]])
+						ip+=2;
+					break;
+			}
 			return;
 		}
 		case 0xF:
@@ -230,6 +243,7 @@ void Chipulator::run_opcode()
 				}
 				case 0x0A:
 				{
+					throw Exceptions::WaitKey;
 					break;
 				}
 				case 0x15:
@@ -278,4 +292,18 @@ void Chipulator::run_opcode()
 		default:
 			return;
 	}
+}
+
+Chipulator::Chipulator()
+{
+	srand(time(NULL));
+	load_font();
+	for(auto y=0;y<32;++y)
+		for(auto x=0;x<64;++x)
+			display[y][x] = false;
+	for(auto i=0;i<0xF;++i)
+		keys[i]=false;
+	ip=0;
+	timers.delay = 0;
+	timers.sound = 0;	
 }
