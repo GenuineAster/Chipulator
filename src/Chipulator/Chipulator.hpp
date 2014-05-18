@@ -17,6 +17,7 @@ private:
 		word I;
 	} regs;
 
+	word ip;
 	std::stack<word> cs;
 
 	struct 
@@ -30,4 +31,5 @@ private:
 public:
 	void load_font();
 	void load_program(std::string fname);
+	void run_opcode();
 };

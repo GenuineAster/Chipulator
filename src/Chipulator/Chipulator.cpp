@@ -1,26 +1,21 @@
-#include <cstdlib>
+#include <cstring>
 #include <Chipulator/Chipulator.hpp>
 
 void Chipulator::load_program(std::string fname)
 {
 	std::ifstream program_file(fname, std::ios::binary | std::ios::in);
 	if(!program_file.is_open())
-		return false;
+		;
 
-	int i=0;
+	int i=0x200;
 
 	while(program_file.good())
 	{
 		//Read file into memory
-		byte &curr_byte = memory[memory_start+i];
+		byte &curr_byte = memory[i];
 		curr_byte = program_file.get();
-		std::cout<<std::hex<<std::uppercase<<(int)curr_byte;
-		if(i%2 == 1) std::cout<<" ";
-		if(i%16 == 15) std::cout<<"\n";
 		++i;
 	}
-	std::cout<<"\n";
-	program_size = i;
 }
 
 void Chipulator::load_font()
@@ -43,9 +38,98 @@ void Chipulator::load_font()
 	 0xF0,0x80,0xF0,0x80,0xF0,
 	 0xF0,0x80,0xF0,0x80,0x80};
 
-	auto len = strlen(font)
+	auto len = std::strlen((char*)font);
 	for(auto i = 0; i < len; ++i)
 	{
-		memory[font_pos+i] = font[i];
+		memory[i] = font[i];
+	}
+}
+
+void Chipulator::run_opcode()
+{
+	word opcode = memory[ip]<<8 | memory[ip+1];
+	switch(opcode>>12)
+	{
+		case 0x0:
+		{
+			switch(opcode)
+			{
+				case 0x00E0:
+				{
+					for(auto y=0;y<32;++y)
+						for(auto x=0;x<64;++x)
+							display[y][x] = false;
+					break;
+				}
+				case 0x00EE:
+				{
+					ip = cs.top();
+					cs.pop();
+				}
+			}
+			return;
+		}
+		case 0x1:
+		{
+
+		}
+		case 0x2:
+		{
+
+		}
+		case 0x3:
+		{
+
+		}
+		case 0x4:
+		{
+
+		}
+		case 0x5:
+		{
+
+		}
+		case 0x6:
+		{
+
+		}
+		case 0x7:
+		{
+
+		}
+		case 0x8:
+		{
+
+		}
+		case 0x9:
+		{
+
+		}
+		case 0xA:
+		{
+
+		}
+		case 0xB:
+		{
+
+		}
+		case 0xC:
+		{
+
+		}
+		case 0xD:
+		{
+
+		}
+		case 0xE:
+		{
+
+		}
+		case 0xF:
+		{
+
+		}
+		default:
+			return;
 	}
 }

@@ -12,6 +12,7 @@ set(SRC_DIR "src")
 set(
 	SOURCES
 	${SRC_DIR}/main.cpp
+	${SRC_DIR}/Chipulator/Chipulator.cpp
 )
 
 include_directories( ${SRC_DIR} )
