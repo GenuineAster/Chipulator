@@ -131,38 +131,6 @@ int main(int argc, char** argv)
 					window.draw(pixel);
 				}
 			}
-			//Run the desired opcode and increment cursor
-			opcode = (memory[program_counter] << 8) | memory[program_counter+1];
-
-			if(false)
-			{
-				std::cout<<std::hex;
-				std::cout<<"Stack size: "<<call_stack.size()<<"\n";
-				std::cout<<"PC: "<<program_counter<<"\n";
-				std::cout<<"Opcode: "<<opcode<<"\n";
-				std::cout<<"\n\n";
-			}
-			if(false)
-				for(int i = 0; i <= 0xF; i++)
-					std::cout<<"\tRegisters["<<i<<"]: "<<std::dec<<(int)registers[i]<<"\n";
-
-			error_code execution_return = execute_opcode();
-
-			if(execution_return != error_code::NONE)
-			{
-				std::cout<<"Error! Code: "
-				         <<std::hex<<std::uppercase<<execution_return
-				         <<std::nouppercase<<", Instruction: "
-				         <<std::uppercase<<opcode<<"\n";
-				;
-				return execution_return;
-			}
-			if(timer_delay > 0)
-				timer_delay--;
-			if(timer_sound > 0)
-				timer_sound--;
-
-			sf::sleep(sf::milliseconds(1));
 		}
 		window.display();
 		//std::cout<<total.getElapsedTime().asMicroseconds()<<std::endl;
