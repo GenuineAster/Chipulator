@@ -115,6 +115,8 @@ int main(int argc, char** argv)
 					{
 						window.waitEvent(event);
 						handle_events(event, chip8, window);
+						if(event.type == sf::Event::Closed)
+							break;
 					}
 					while(event.type != sf::Event::KeyPressed);
 					break;
