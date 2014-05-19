@@ -314,6 +314,7 @@ void Chipulator::run_opcode()
 				}
 				case 0x0A:
 				{
+					ip+=2;
 					throw Exception::WaitKey;
 					break;
 				}

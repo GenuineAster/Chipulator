@@ -59,7 +59,7 @@ void handle_events(sf::Event &event, Chipulator &chip8, sf::RenderWindow &window
 			//std::cout<<"Key released: "<<std::hex<<translate_key(event.key.code)<<std::endl;
 			break;
 		case sf::Event::Closed:
-			//window.close();
+			window.close();
 			break;
 		default:
 			break;
