@@ -142,7 +142,7 @@ int main(int argc, char** argv)
 			window.display();
 		}
 		//std::cout<<std::dec<<total.getElapsedTime().asMicroseconds()<<std::endl;
-		//sf::sleep(sf::microseconds(1000));
+		sf::sleep(sf::microseconds(10000));
 	}
 
 	return 0;

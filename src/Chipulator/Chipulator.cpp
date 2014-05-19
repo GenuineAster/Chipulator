@@ -201,15 +201,19 @@ void Chipulator::run_opcode()
 				}
 				case 0x4:
 				{
-					if((uint)regs.V[VX] + (uint)regs.V[VY] > 0xFF)
+					if((int)regs.V[VX] + (int)regs.V[VY] > 0xFF)
 						regs.V[0xF] = true;
-					regs.V[VX] = regs.V[VX] + regs.V[VY];
+					else
+						regs.V[0xF] = false;
+					regs.V[VX] += regs.V[VX];
 					break;
 				}
 				case 0x5:
 				{
-					if((int)regs.V[VX] - (int)regs.V[VY] < 0)
+					if(regs.V[VX] > regs.V[VY])
 						regs.V[0xF] = true;
+					else
+						regs.V[0xF] = false;
 					regs.V[VX] = regs.V[VX] - regs.V[VY];
 					break;
 				}
@@ -278,10 +282,8 @@ void Chipulator::run_opcode()
 					auto mask = 1 << (8-pixel_offset);
 					bool curr_pixel = (crow & mask) >> (8-pixel_offset);
 					pixel ^= curr_pixel;
-					if(pixel==0)
+					if(curr_pixel && !pixel && !regs.V[0xF])
 						regs.V[0xF] = 1;
-					else
-						regs.V[0xF] = 0;
 				}
 				row++;
 			}
