@@ -28,6 +28,8 @@ private:
 
 	bool display[32][64];
 	bool keys[0xF];
+	bool should_draw;
+	word font_pos;
 
 	void load_font();
 
@@ -44,6 +46,7 @@ public:
 	void run_opcode();
 	bool running();
 	void decrement_timers();
+	bool get_draw();
 
 	Chipulator();
 };

@@ -52,22 +52,24 @@ void handle_events(sf::Event &event, Chipulator &chip8, sf::RenderWindow &window
 	{
 		case sf::Event::KeyPressed:
 			chip8.key_pressed(translate_key(event.key.code));
-			return;
+			//std::cout<<"Key pressed: "<<std::hex<<translate_key(event.key.code)<<std::endl;
 			break;
 		case sf::Event::KeyReleased:
 			chip8.key_released(translate_key(event.key.code));
-			return;
+			//std::cout<<"Key released: "<<std::hex<<translate_key(event.key.code)<<std::endl;
 			break;
 		case sf::Event::Closed:
-			window.close();
-			return;
+			//window.close();
+			break;
+		default:
 			break;
 	}
+	return;
 }
 
 int main(int argc, char** argv)
 {
-	if(argc <= 0)
+	if(argc < 2)
 		return -1;
 
 	std::string name{argv[1]};
@@ -85,19 +87,19 @@ int main(int argc, char** argv)
 	timer.restart();
 	total.restart();
 
-	while(chip8.running())
+	window.clear(sf::Color::Black);
+
+	while(window.isOpen() && chip8.running())
 	{
 		sf::Event event;
-		window.pollEvent(event);
-		handle_events(event, chip8, window);
+		while(window.pollEvent(event))
+			handle_events(event, chip8, window);
 
 		if(timer.getElapsedTime().asMicroseconds() > timer_period)
 		{
 			timer.restart();
 			chip8.decrement_timers();
 		}
-		std::cout<<"\n";
-		program_size = i;
 
 		try
 		{
@@ -119,22 +121,26 @@ int main(int argc, char** argv)
 				}
 			}
 		}
-		window.clear(sf::Color::Black);
-		auto display = chip8.get_display();
-		for(auto y=0;y<32;++y)
+		if(chip8.get_draw())
 		{
-			for(auto x=0;x<64;++x)
+			window.clear(sf::Color::Black);
+			auto display = chip8.get_display();
+			for(auto y=0;y<32;++y)
 			{
-				if(display[y][x])
+				for(auto x=0;x<64;++x)
 				{
+					if(display[y][x])
+						pixel.setFillColor(sf::Color::White);
+					else
+						pixel.setFillColor(sf::Color::Black);				
 					pixel.setPosition(x*10.f, y*10.f);
 					window.draw(pixel);
 				}
 			}
+			window.display();
 		}
-		window.display();
-		//std::cout<<total.getElapsedTime().asMicroseconds()<<std::endl;
-		sf::sleep(sf::microseconds(100));
+		//std::cout<<std::dec<<total.getElapsedTime().asMicroseconds()<<std::endl;
+		//sf::sleep(sf::microseconds(1000));
 	}
 
 	return 0;
