@@ -14,5 +14,5 @@ $ cmake . && make
 
 To run a CHIP-8 ROM, such as `MAZE` just run
 ```bash
-./Chipulator run/roms/MAZE
+$ ./Chipulator run/roms/MAZE
 ```
